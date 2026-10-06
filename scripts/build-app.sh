@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Construit Call Recorder.app à partir du binaire SPM CallRecorderMenuBar.
+# Builds Call Recorder.app from the CallRecorderMenuBar SPM binary.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -7,25 +7,25 @@ cd "$ROOT"
 
 APP_NAME="Call Recorder"
 BUNDLE_ID="local.call-recorder.menubar"
-VERSION="0.2.0"
+VERSION="0.3.0"
 BINARY="CallRecorderMenuBar"
 
 echo "==> swift build -c release"
 swift build -c release
 
 APP="build/${APP_NAME}.app"
-echo "==> Construction du bundle $APP"
+echo "==> Assembling bundle $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp ".build/release/$BINARY" "$APP/Contents/MacOS/$BINARY"
 
-echo "==> Génération de l'icône"
+echo "==> Generating icon"
 ICONSET="build/AppIcon.iconset"
 rm -rf "$ICONSET"
 mkdir -p "$ICONSET"
 swift scripts/generate-icon.swift "$ICONSET/icon_1024.png"
-# Tailles requises par iconutil
+# Sizes required by iconutil
 for s in 16 32 128 256 512; do
     sips -z $s $s "$ICONSET/icon_1024.png" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
     d=$((s * 2))
@@ -42,7 +42,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>fr</string>
+    <string>en</string>
     <key>CFBundleExecutable</key>
     <string>${BINARY}</string>
     <key>CFBundleIconFile</key>
@@ -70,21 +70,21 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Call Recorder enregistre votre micro pendant les appels.</string>
+    <string>Call Recorder records your microphone during calls.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Call Recorder transcrit vos enregistrements localement.</string>
+    <string>Call Recorder transcribes your recordings on-device.</string>
 </dict>
 </plist>
 PLIST
 
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
-echo "==> Codesign ad-hoc"
+echo "==> Ad-hoc codesign"
 codesign --sign - --force --deep "$APP"
 
 echo ""
-echo "✅ Bundle construit : $APP"
+echo "✅ Bundle built: $APP"
 echo ""
-echo "Pour installer :"
+echo "To install:"
 echo "  mv \"$APP\" /Applications/"
 echo "  open \"/Applications/${APP_NAME}.app\""

@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Pré-télécharge les modèles CoreML de diarization (FluidAudio) depuis HuggingFace.
-# À lancer UNE FOIS avec accès réseau ; ensuite call-recorder --diarize
-# fonctionne 100% offline (DiarizerModels.load ne contacte jamais le réseau).
+# Pre-downloads the FluidAudio CoreML diarization models from Hugging Face.
+# Run ONCE with network access; afterwards diarization works 100% offline
+# (DiarizerModels.load never touches the network).
 set -euo pipefail
 
 REPO="FluidInference/speaker-diarization-coreml"
 DEST="${1:-$HOME/.call-recorder/models/speaker-diarization-coreml}"
 BASE="https://huggingface.co"
 
-# Seuls ces deux bundles sont requis par DiarizerModels.load(local…)
+# Only these two bundles are required by DiarizerModels.load(local…)
 BUNDLES=("pyannote_segmentation.mlmodelc" "wespeaker_v2.mlmodelc")
 
-echo "==> Modèles : $REPO"
-echo "==> Destination : $DEST"
+echo "==> Models: $REPO"
+echo "==> Destination: $DEST"
 mkdir -p "$DEST"
 
-# Liste récursive des fichiers du repo via l'API HuggingFace
+# Recursive file listing via the Hugging Face API
 FILES=$(curl -fsSL "$BASE/api/models/$REPO/tree/main?recursive=true" \
     | python3 -c '
 import json, sys
@@ -37,16 +37,16 @@ for path in $FILES; do
 done
 
 if [[ $count -eq 0 ]]; then
-    echo "Erreur : aucun fichier téléchargé (structure du repo HuggingFace changée ?)" >&2
+    echo "Error: no files downloaded (Hugging Face repo layout changed?)" >&2
     exit 1
 fi
 
-# Vérification minimale : le loader cherche coremldata.bin dans chaque bundle
+# Minimal check: the loader looks for coremldata.bin in each bundle
 for bundle in "${BUNDLES[@]}"; do
     if [[ ! -f "$DEST/$bundle/coremldata.bin" ]]; then
-        echo "Erreur : $bundle/coremldata.bin manquant après téléchargement" >&2
+        echo "Error: $bundle/coremldata.bin missing after download" >&2
         exit 1
     fi
 done
 
-echo "✅ $count fichiers téléchargés. Diarization utilisable avec : call-recorder --diarize"
+echo "✅ $count files downloaded. Speaker identification ready (app toggle or call-recorder --diarize)"

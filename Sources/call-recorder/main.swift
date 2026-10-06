@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import CallRecorderKit
 
-let kVersion = "0.2.0"
+let kVersion = "0.3.0"
 
 struct Options {
     var name: String = "call"
@@ -31,22 +31,22 @@ func printHelp() {
     Usage: call-recorder [options]
 
     Options:
-      --name <str>          Nom du call (défaut: "call")
-      --output-dir <path>   Dossier des .md finaux (défaut: ~/Recordings)
-      --temp-dir <path>     Dossier des .m4a temporaires (défaut: ~/Recordings/.tmp)
-      --lang <locale>       Langue de transcription (défaut: fr-FR)
-      --app <name>          App à capturer (défaut: "Microsoft Teams" — vide = tout l'audio)
-      --keep-audio          Conserver les .m4a après transcription
-      --diarize             Distinguer les interlocuteurs sur la piste système
-                            (nécessite les modèles : scripts/download-models.sh)
-      --models-dir <path>   Dossier des modèles de diarization
-                            (défaut: ~/.call-recorder/models/speaker-diarization-coreml)
-      --process <mic> <sys> Transcrire deux .m4a existants (session interrompue)
-                            sans enregistrer ; les fichiers audio sont conservés
-      --help, -h            Affiche cette aide
-      --version             Affiche la version
+      --name <str>          Call name (default: "call")
+      --output-dir <path>   Folder for the final .md files (default: ~/Recordings)
+      --temp-dir <path>     Folder for temporary .m4a files (default: ~/Recordings/.tmp)
+      --lang <locale>       Transcription language (default: fr-FR)
+      --app <name>          App to capture (default: "Microsoft Teams" — empty = all audio)
+      --keep-audio          Keep the .m4a files after transcription
+      --diarize             Identify remote speakers on the system track
+                            (requires the models: scripts/download-models.sh)
+      --models-dir <path>   Diarization models folder
+                            (default: ~/.call-recorder/models/speaker-diarization-coreml)
+      --process <mic> <sys> Transcribe two existing .m4a files (interrupted session)
+                            without recording; audio files are kept
+      --help, -h            Show this help
+      --version             Show the version
 
-    Pendant l'enregistrement, Ctrl+C arrête proprement, transcrit et génère le markdown.
+    While recording, Ctrl+C stops cleanly, transcribes and writes the markdown.
     """)
 }
 
@@ -90,7 +90,7 @@ func parseArgs(_ argv: [String]) -> Options {
             i += 1
             opt.processSys = URL(fileURLWithPath: (argv[i] as NSString).expandingTildeInPath)
         default:
-            FileHandle.standardError.write("Option inconnue: \(a)\n".data(using: .utf8)!)
+            FileHandle.standardError.write("Unknown option: \(a)\n".data(using: .utf8)!)
             exit(2)
         }
         i += 1
@@ -101,7 +101,7 @@ func parseArgs(_ argv: [String]) -> Options {
 @available(macOS 26.0, *)
 func runApp() async {
     setbuf(stdout, nil)
-    print("call-recorder \(kVersion) — initialisation…")
+    print("call-recorder \(kVersion) — starting…")
     fflush(stdout)
     let opts = parseArgs(CommandLine.arguments)
     let fm = FileManager.default
@@ -109,8 +109,8 @@ func runApp() async {
     // Vérifier les modèles AVANT d'enregistrer : échouer après coup gâcherait le call
     if opts.diarize && !Diarizer.modelsAvailable(in: opts.modelsDir) {
         FileHandle.standardError.write("""
-        Modèles de diarization introuvables dans : \(opts.modelsDir.path)
-        Lancez d'abord : scripts/download-models.sh
+        Diarization models not found in: \(opts.modelsDir.path)
+        Run first: scripts/download-models.sh
 
         """.data(using: .utf8)!)
         exit(1)
@@ -121,7 +121,7 @@ func runApp() async {
     // Mode récupération : traiter des .m4a existants sans enregistrer
     if let micIn = opts.processMic, let sysIn = opts.processSys {
         guard fm.fileExists(atPath: micIn.path), fm.fileExists(atPath: sysIn.path) else {
-            FileHandle.standardError.write("Fichier introuvable : \(micIn.path) ou \(sysIn.path)\n".data(using: .utf8)!)
+            FileHandle.standardError.write("File not found: \(micIn.path) or \(sysIn.path)\n".data(using: .utf8)!)
             exit(1)
         }
         func fileDuration(_ url: URL) -> Double {
@@ -135,7 +135,7 @@ func runApp() async {
             micURL: micIn, sysURL: sysIn,
             opts: opts, startDate: creation ?? Date(), duration: duration
         )
-        print("✅ Markdown produit : \(mdURL.path) (fichiers audio conservés)")
+        print("✅ Markdown written: \(mdURL.path) (audio files kept)")
         return
     }
 
@@ -149,8 +149,8 @@ func runApp() async {
     let micURL = opts.tempDir.appendingPathComponent("\(slug)_\(stamp)_mic.m4a")
     let sysURL = opts.tempDir.appendingPathComponent("\(slug)_\(stamp)_sys.m4a")
 
-    print("📂 Fichiers temp : \(opts.tempDir.path)")
-    print("📂 Sortie        : \(opts.outputDir.path)")
+    print("📂 Temp files: \(opts.tempDir.path)")
+    print("📂 Output    : \(opts.outputDir.path)")
 
     let recorder = Recorder(micURL: micURL, sysURL: sysURL, appName: opts.app)
 
@@ -162,12 +162,12 @@ func runApp() async {
     }
     src.resume()
 
-    print("▶  Démarrage de l'enregistrement… (Ctrl+C pour arrêter)")
+    print("▶  Recording… (Ctrl+C to stop)")
     fflush(stdout)
     do {
         try await recorder.start()
     } catch {
-        FileHandle.standardError.write("Erreur démarrage enregistrement: \(error)\n".data(using: .utf8)!)
+        FileHandle.standardError.write("Failed to start recording: \(error)\n".data(using: .utf8)!)
         exit(1)
     }
 
@@ -190,13 +190,13 @@ func runApp() async {
 
     timerTask.cancel()
     FileHandle.standardError.write("\n".data(using: .utf8)!)
-    print("⏹  Arrêt et finalisation…")
+    print("⏹  Stopping and finalizing…")
 
     let duration: Double
     do {
         duration = try await recorder.stop()
     } catch {
-        FileHandle.standardError.write("Erreur arrêt enregistrement: \(error)\n".data(using: .utf8)!)
+        FileHandle.standardError.write("Failed to stop recording: \(error)\n".data(using: .utf8)!)
         exit(1)
     }
 
@@ -210,18 +210,18 @@ func runApp() async {
         try? fm.removeItem(at: sysURL)
     }
 
-    print("✅ Markdown produit : \(mdURL.path)")
+    print("✅ Markdown written: \(mdURL.path)")
 }
 
-/// Pipeline commun : transcription → diarization (option) → résumé → markdown.
+/// Pipeline commun : transcription → diarization (option) → markdown.
 /// Utilisé après un enregistrement live ou sur des .m4a existants (--process).
 @available(macOS 26.0, *)
 func produceMarkdown(micURL: URL, sysURL: URL, opts: Options, startDate: Date, duration: Double) async -> URL {
-    print("📝 Transcription en cours (langue: \(opts.lang))…")
+    print("📝 Transcribing (language: \(opts.lang))…")
     let locale = Locale(identifier: opts.lang)
 
-    async let micSegs = Transcriber.transcribe(url: micURL, locale: locale, speaker: "Moi")
-    async let sysSegs = Transcriber.transcribe(url: sysURL, locale: locale, speaker: "Interlocuteur")
+    async let micSegs = Transcriber.transcribe(url: micURL, locale: locale, speaker: Speaker.me)
+    async let sysSegs = Transcriber.transcribe(url: sysURL, locale: locale, speaker: Speaker.interlocutor)
 
     var segments: [Segment]
     do {
@@ -229,50 +229,30 @@ func produceMarkdown(micURL: URL, sysURL: URL, opts: Options, startDate: Date, d
         let s = try await sysSegs
         segments = (m + s).sorted { $0.start < $1.start }
     } catch {
-        FileHandle.standardError.write("Erreur transcription: \(error)\n".data(using: .utf8)!)
+        FileHandle.standardError.write("Transcription failed: \(error)\n".data(using: .utf8)!)
         exit(1)
     }
 
     if opts.diarize {
-        print("🗣  Diarization de la piste système…")
+        print("🗣  Identifying speakers on the system track…")
         do {
             segments = try Diarizer.tag(
                 segments: segments,
-                speakerToSplit: "Interlocuteur",
+                speakerToSplit: Speaker.interlocutor,
                 systemAudioURL: sysURL,
                 modelsDir: opts.modelsDir
             )
         } catch {
             // Non bloquant : on garde la transcription sans distinction des interlocuteurs
-            FileHandle.standardError.write("⚠️  Diarization échouée (\(error)) — labels génériques conservés\n".data(using: .utf8)!)
+            FileHandle.standardError.write("⚠️  Diarization failed (\(error)) — keeping generic labels\n".data(using: .utf8)!)
         }
-    }
-
-    print("✨ Résumé via Apple Intelligence…")
-    let summary = await Summarizer.summarize(
-        segments: segments,
-        language: opts.lang,
-        onStage: { stage in
-            switch stage {
-            case .checking:
-                FileHandle.standardError.write("   vérification du modèle…\n".data(using: .utf8)!)
-            case .chunk(let i, let total):
-                FileHandle.standardError.write("   passage \(i)/\(total)…\n".data(using: .utf8)!)
-            case .finalizing:
-                FileHandle.standardError.write("   consolidation…\n".data(using: .utf8)!)
-            }
-        }
-    )
-    if summary == nil {
-        print("   (Apple Intelligence indisponible — résumé sauté)")
     }
 
     let md = Assembler.makeMarkdown(
         name: opts.name,
         date: startDate,
         duration: duration,
-        segments: segments,
-        summary: summary
+        segments: segments
     )
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd_HH-mm-ss"
@@ -281,7 +261,7 @@ func produceMarkdown(micURL: URL, sysURL: URL, opts: Options, startDate: Date, d
     do {
         try md.write(to: mdURL, atomically: true, encoding: .utf8)
     } catch {
-        FileHandle.standardError.write("Erreur écriture markdown: \(error)\n".data(using: .utf8)!)
+        FileHandle.standardError.write("Failed to write markdown: \(error)\n".data(using: .utf8)!)
         exit(1)
     }
     return mdURL
@@ -290,6 +270,6 @@ func produceMarkdown(micURL: URL, sysURL: URL, opts: Options, startDate: Date, d
 if #available(macOS 26.0, *) {
     await runApp()
 } else {
-    FileHandle.standardError.write("macOS 26.0+ requis.\n".data(using: .utf8)!)
+    FileHandle.standardError.write("macOS 26.0+ required.\n".data(using: .utf8)!)
     exit(1)
 }

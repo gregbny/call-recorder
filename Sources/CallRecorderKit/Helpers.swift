@@ -1,5 +1,11 @@
 import Foundation
 
+/// Speaker labels used in transcripts.
+public enum Speaker {
+    public static let me = "Me"
+    public static let interlocutor = "Interlocutor"
+}
+
 public func slugify(_ s: String) -> String {
     let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
     let spaceReplaced = s.replacingOccurrences(of: " ", with: "-")

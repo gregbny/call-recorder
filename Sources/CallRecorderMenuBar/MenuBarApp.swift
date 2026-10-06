@@ -43,13 +43,13 @@ struct MenuContent: View {
             header
             Divider()
 
-            Text("Nom du call")
+            Text("Call name")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            TextField("ex: point-hebdo", text: $controller.callName)
+            TextField("e.g. weekly-sync", text: $controller.callName)
                 .textFieldStyle(.roundedBorder)
 
-            Text("Langue")
+            Text("Language")
                 .font(.caption)
                 .foregroundColor(.secondary)
             Picker("", selection: $controller.language) {
@@ -60,10 +60,10 @@ struct MenuContent: View {
             .labelsHidden()
             .disabled(controller.state != .idle)
 
-            Toggle("Distinguer les interlocuteurs", isOn: $controller.diarize)
+            Toggle("Identify speakers", isOn: $controller.diarize)
                 .disabled(!controller.diarizeModelsAvailable)
             if !controller.diarizeModelsAvailable {
-                Text("Modèles absents — lancez scripts/download-models.sh")
+                Text("Models missing — run scripts/download-models.sh")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -81,7 +81,7 @@ struct MenuContent: View {
                 } label: {
                     HStack {
                         Image(systemName: "doc.text")
-                        Text("Ouvrir le dernier transcript")
+                        Text("Open last transcript")
                     }
                 }
                 .buttonStyle(.plain)
@@ -90,7 +90,7 @@ struct MenuContent: View {
                 } label: {
                     HStack {
                         Image(systemName: "folder")
-                        Text("Révéler dans le Finder")
+                        Text("Show in Finder")
                     }
                 }
                 .buttonStyle(.plain)
@@ -104,7 +104,7 @@ struct MenuContent: View {
             }
 
             Divider()
-            Button("Quitter") { NSApp.terminate(nil) }
+            Button("Quit") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
                 .buttonStyle(.plain)
         }
@@ -115,7 +115,7 @@ struct MenuContent: View {
     private var liveTranscriptView: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Transcription live")
+                Text("Live transcript")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -127,7 +127,7 @@ struct MenuContent: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 6) {
                         if controller.liveSegments.isEmpty && controller.volatileBySpeaker.isEmpty {
-                            Text("En attente d'audio…")
+                            Text("Waiting for audio…")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .padding(.vertical, 4)
@@ -141,7 +141,7 @@ struct MenuContent: View {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(seg.speaker)
                                         .font(.caption2.weight(.semibold))
-                                        .foregroundColor(seg.speaker == "Moi" ? .blue : .orange)
+                                        .foregroundColor(seg.speaker == Speaker.me ? .blue : .orange)
                                     Text(seg.text)
                                         .font(.caption)
                                         .textSelection(.enabled)
@@ -160,7 +160,7 @@ struct MenuContent: View {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(spk)
                                         .font(.caption2.weight(.semibold))
-                                        .foregroundColor(spk == "Moi" ? .blue : .orange)
+                                        .foregroundColor(spk == Speaker.me ? .blue : .orange)
                                     Text(txt)
                                         .font(.caption)
                                         .italic()
@@ -209,7 +209,7 @@ struct MenuContent: View {
             } label: {
                 HStack {
                     Image(systemName: "record.circle.fill")
-                    Text("Démarrer l'enregistrement")
+                    Text("Start recording")
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -221,7 +221,7 @@ struct MenuContent: View {
             } label: {
                 HStack {
                     Image(systemName: "stop.circle.fill")
-                    Text("Arrêter & transcrire")
+                    Text("Stop & transcribe")
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -249,9 +249,9 @@ struct MenuContent: View {
 
     private var stateLabel: String {
         switch controller.state {
-        case .idle: return "Prêt"
-        case .recording: return "Enregistrement"
-        case .processing: return "Traitement"
+        case .idle: return "Ready"
+        case .recording: return "Recording"
+        case .processing: return "Processing"
         }
     }
 }

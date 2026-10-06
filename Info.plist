@@ -9,8 +9,8 @@
     <key>CFBundleExecutable</key>
     <string>call-recorder</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Call Recorder enregistre votre micro pendant les appels.</string>
+    <string>Call Recorder records your microphone during calls.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Call Recorder transcrit vos enregistrements localement.</string>
+    <string>Call Recorder transcribes your recordings on-device.</string>
 </dict>
 </plist>

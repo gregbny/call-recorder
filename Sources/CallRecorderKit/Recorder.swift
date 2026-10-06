@@ -36,7 +36,7 @@ public final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         guard micOK else {
             throw NSError(domain: "Recorder", code: 1,
                 userInfo: [NSLocalizedDescriptionKey:
-                    "Permission micro refusée."])
+                    "Microphone permission denied."])
         }
 
         let input = engine.inputNode
@@ -80,12 +80,12 @@ public final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         } catch {
             throw NSError(domain: "Recorder", code: 2,
                 userInfo: [NSLocalizedDescriptionKey:
-                    "Permission enregistrement d'écran refusée ou indisponible: \(error)"])
+                    "Screen & System Audio Recording permission denied or unavailable: \(error)"])
         }
 
         guard let display = content.displays.first else {
             throw NSError(domain: "Recorder", code: 3,
-                userInfo: [NSLocalizedDescriptionKey: "Aucun écran disponible."])
+                userInfo: [NSLocalizedDescriptionKey: "No display available."])
         }
 
         let needle = appName.lowercased()
@@ -99,7 +99,7 @@ public final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             }
             if matched.isEmpty {
                 FileHandle.standardError.write(
-                    "⚠️  Application '\(appName)' introuvable — capture de tout l'audio système.\n"
+                    "⚠️  App '\(appName)' not found — capturing all system audio.\n"
                         .data(using: .utf8)!)
             }
             targetApps = matched
@@ -173,7 +173,7 @@ public final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
                 )
             } catch {
                 FileHandle.standardError.write(
-                    "Erreur création fichier système: \(error)\n".data(using: .utf8)!)
+                    "Failed to create system audio file: \(error)\n".data(using: .utf8)!)
                 return
             }
         }
@@ -183,7 +183,7 @@ public final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
 
     public func stream(_ stream: SCStream, didStopWithError error: Error) {
         FileHandle.standardError.write(
-            "SCStream arrêté avec erreur: \(error)\n".data(using: .utf8)!)
+            "SCStream stopped with error: \(error)\n".data(using: .utf8)!)
     }
 
     private static func pcmBuffer(from sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {

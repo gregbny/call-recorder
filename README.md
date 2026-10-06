@@ -1,15 +1,16 @@
 # Call Recorder
 
-Records your calls (microphone + audio from Teams, Zoom…), transcribes and summarizes them
+Records your calls (microphone + audio from Teams, Zoom…) and transcribes them
 **100% locally** on your Mac — nothing is sent to the internet.
-Output: a markdown meeting note in `~/Recordings`.
+Output: a timestamped markdown transcript in `~/Recordings`, with speakers told apart
+(`Me`, `Interlocutor 1`, `Interlocutor 2`…).
 
 Two ways to use it:
 - **Menu bar app** (recommended): an icon in the top-right corner with a Start / Stop button.
 - **Command line**: `call-recorder --name "my-call"`.
 
-> The interface and generated notes are in French (`Moi` = me, `Interlocuteur` = other party).
-> Transcription works in any language supported by Apple's speech recognition (`fr-FR` by default).
+> Transcription works in any language supported by Apple's speech recognition
+> (French, English, Spanish, German, Italian, Portuguese, Dutch… — `fr-FR` by default).
 
 > [!WARNING]
 > **Disclaimer — always inform participants and get their consent before recording.**
@@ -36,7 +37,6 @@ Two ways to use it:
 | macOS | **26 (Tahoe) or later** — Apple menu  > About This Mac |
 | Mac | Apple Silicon (M1 or later) |
 | Tools | Apple Command Line Tools (free, installer offered automatically if missing). Xcode is **not** required. |
-| Auto summary | Apple Intelligence enabled (System Settings > Apple Intelligence & Siri). Optional: without it, notes have no summary section. |
 
 ### 2. Install
 
@@ -88,18 +88,17 @@ rm -rf "/Applications/Call Recorder.app" ~/.local/bin/call-recorder ~/.call-reco
 tccutil reset All local.call-recorder.menubar
 ```
 
-Your notes in `~/Recordings` are kept.
+Your transcripts in `~/Recordings` are kept.
 
 ### Troubleshooting
 
 | Problem | Fix |
 |---|---|
 | `xcode-select: error` / `swift: command not found` | Run `xcode-select --install`, finish the installation, run `bash install.sh` again. |
-| "Swift 6.2+ requis" | System Settings > Software Update (updates the Command Line Tools). |
+| "Swift 6.2+ required" | System Settings > Software Update (updates the Command Line Tools). |
 | The other party is missing from the transcript | Check the *Screen & System Audio Recording* permission, then relaunch the app. |
 | Permissions don't "stick" | `tccutil reset All local.call-recorder.menubar`, relaunch the app and accept again. |
-| No summary section | Apple Intelligence is disabled or not ready yet (still downloading). |
-| "Modèles absents" in the app | `bash scripts/download-models.sh` |
+| "Models missing" in the app | `bash scripts/download-models.sh` |
 
 ---
 
@@ -146,9 +145,9 @@ Assign it a global keyboard shortcut to start/stop quickly.
 
 ## Speaker diarization
 
-By default the whole system track is labelled `Interlocuteur`. With diarization enabled
-(`--diarize`, or the "Distinguer les interlocuteurs" toggle in the app), remote speakers are
-told apart (`Interlocuteur 1`, `Interlocuteur 2`, …) using
+By default the whole system track is labelled `Interlocutor`. With diarization enabled
+(`--diarize`, or the "Identify speakers" toggle in the app), remote speakers are
+told apart (`Interlocutor 1`, `Interlocutor 2`, …) using
 [FluidAudio](https://github.com/FluidInference/FluidAudio) — CoreML models, inference 100% local
 on the Apple Neural Engine.
 
@@ -159,17 +158,17 @@ labels stay generic.
 ## Sample output
 
 ```markdown
-# Call : weekly-sync — 2026-04-12 14:32
+# Call: weekly-sync — 2026-04-12 14:32
 
-**Durée** : 23 min 14 s
+**Duration**: 23 min 14 s
 
-## Transcription
+## Transcript
 
-**[00:00:03] Interlocuteur** : Bonjour, est-ce que tu m'entends bien ?
+**[00:00:03] Interlocutor 1**: Hi, can you hear me okay?
 
-**[00:00:05] Moi** : Oui parfaitement, on peut commencer.
+**[00:00:05] Me**: Yes, perfectly. Let's get started.
 
-**[00:00:09] Interlocuteur** : Parfait, on attaque le point sur la sprint review.
+**[00:00:09] Interlocutor 2**: Great, let's start with the sprint review.
 ```
 
 ## Architecture
@@ -178,7 +177,6 @@ labels stay generic.
   - `Recorder.swift` — microphone (AVAudioEngine) + system audio (ScreenCaptureKit) capture
   - `Transcriber.swift` / `LiveTranscriber.swift` — transcription with SpeechAnalyzer
   - `Diarizer.swift` — speaker diarization (FluidAudio, local CoreML)
-  - `Summarizer.swift` — summary with Apple Intelligence
   - `Assembler.swift` — chronological merge and markdown generation
 - `Sources/call-recorder/main.swift` — CLI: argument parsing, orchestration, SIGINT handling
 - `Sources/CallRecorderMenuBar/` — menu bar app
@@ -190,7 +188,7 @@ Apple frameworks + FluidAudio only. No network calls at runtime; only
 
 ## Credits
 
-- Transcription: Apple [SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer); summary: Apple Intelligence ([Foundation Models](https://developer.apple.com/documentation/foundationmodels)).
+- Transcription: Apple [SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer).
 - Diarization: [FluidAudio](https://github.com/FluidInference/FluidAudio) by FluidInference (Apache 2.0),
   with the [speaker-diarization-coreml](https://huggingface.co/FluidInference/speaker-diarization-coreml)
   CoreML models, converted from [pyannote.audio](https://github.com/pyannote/pyannote-audio) (segmentation)

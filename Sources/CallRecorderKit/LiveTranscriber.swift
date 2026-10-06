@@ -46,7 +46,7 @@ public final class LiveTranscriber: @unchecked Sendable {
         let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])
         guard let format else {
             throw NSError(domain: "LiveTranscriber", code: 10, userInfo: [
-                NSLocalizedDescriptionKey: "Pas de format audio compatible pour SpeechAnalyzer."
+                NSLocalizedDescriptionKey: "No audio format compatible with SpeechAnalyzer."
             ])
         }
         self.analyzerFormat = format

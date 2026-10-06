@@ -22,7 +22,7 @@ final class RecordingController: ObservableObject {
     @Published var elapsed: TimeInterval = 0
     @Published var lastOutputURL: URL? = nil
     @Published var lastError: String? = nil
-    @Published var processingMessage: String = "Traitement…"
+    @Published var processingMessage: String = "Processing…"
     @Published var liveSegments: [Segment] = []
     @Published var volatileBySpeaker: [String: String] = [:]
 
@@ -72,8 +72,8 @@ final class RecordingController: ObservableObject {
         liveSegments = []
         state = .recording
 
-        let micLT = LiveTranscriber(speaker: "Moi", startWall: date)
-        let sysLT = LiveTranscriber(speaker: "Interlocuteur", startWall: date)
+        let micLT = LiveTranscriber(speaker: Speaker.me, startWall: date)
+        let sysLT = LiveTranscriber(speaker: Speaker.interlocutor, startWall: date)
         micLive = micLT
         sysLive = sysLT
 
@@ -109,7 +109,7 @@ final class RecordingController: ObservableObject {
                 try await rec.start()
                 self.startTimer(from: Date())
             } catch {
-                self.lastError = "Démarrage: \(error.localizedDescription)"
+                self.lastError = "Start: \(error.localizedDescription)"
                 self.state = .idle
                 self.recorder = nil
                 self.micLive = nil
@@ -146,7 +146,7 @@ final class RecordingController: ObservableObject {
         let lang = language
         let outDir = outputDir
 
-        processingMessage = "Transcription…"
+        processingMessage = "Transcribing…"
         let micLT = micLive
         let sysLT = sysLive
         micLive = nil
@@ -157,21 +157,21 @@ final class RecordingController: ObservableObject {
                 await micLT?.finish()
                 await sysLT?.finish()
                 let locale = Locale(identifier: lang)
-                async let micSegs = Transcriber.transcribe(url: mURL, locale: locale, speaker: "Moi")
-                async let sysSegs = Transcriber.transcribe(url: sURL, locale: locale, speaker: "Interlocuteur")
+                async let micSegs = Transcriber.transcribe(url: mURL, locale: locale, speaker: Speaker.me)
+                async let sysSegs = Transcriber.transcribe(url: sURL, locale: locale, speaker: Speaker.interlocutor)
                 let m = try await micSegs
                 let s = try await sysSegs
                 var segments = (m + s).sorted { $0.start < $1.start }
 
                 if self.diarize && self.diarizeModelsAvailable {
-                    self.processingMessage = "Interlocuteurs…"
+                    self.processingMessage = "Identifying speakers…"
                     let input = segments
                     do {
                         // Hors main actor : la diarization est CPU-bound
                         segments = try await Task.detached(priority: .userInitiated) {
                             try Diarizer.tag(
                                 segments: input,
-                                speakerToSplit: "Interlocuteur",
+                                speakerToSplit: Speaker.interlocutor,
                                 systemAudioURL: sURL,
                                 modelsDir: Diarizer.defaultModelsDir()
                             )
@@ -181,30 +181,11 @@ final class RecordingController: ObservableObject {
                     }
                 }
 
-                self.processingMessage = "Résumé…"
-                let summary = await Summarizer.summarize(
-                    segments: segments,
-                    language: lang,
-                    onStage: { stage in
-                        Task { @MainActor in
-                            switch stage {
-                            case .checking:
-                                self.processingMessage = "Résumé : vérification…"
-                            case .chunk(let i, let total):
-                                self.processingMessage = "Résumé : passage \(i)/\(total)…"
-                            case .finalizing:
-                                self.processingMessage = "Résumé : consolidation…"
-                            }
-                        }
-                    }
-                )
-
                 let md = Assembler.makeMarkdown(
                     name: name,
                     date: startedAt,
                     duration: duration,
-                    segments: segments,
-                    summary: summary
+                    segments: segments
                 )
                 let df = DateFormatter()
                 df.dateFormat = "yyyy-MM-dd_HH-mm-ss"
@@ -221,7 +202,7 @@ final class RecordingController: ObservableObject {
                 self.liveSegments = []
                 self.volatileBySpeaker = [:]
             } catch {
-                self.lastError = "Arrêt: \(error.localizedDescription)"
+                self.lastError = "Stop: \(error.localizedDescription)"
                 self.state = .idle
                 self.recorder = nil
             }
