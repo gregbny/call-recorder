@@ -11,8 +11,14 @@ Two ways to use it:
 > The interface and generated notes are in French (`Moi` = me, `Interlocuteur` = other party).
 > Transcription works in any language supported by Apple's speech recognition (`fr-FR` by default).
 
-> ⚠️ **Tell the other participants.** Recording a conversation without consent is illegal
-> in many countries (including France). Announce the recording at the start of the call.
+> [!WARNING]
+> **Disclaimer — always inform participants and get their consent before recording.**
+> Recording a conversation without the other participants' knowledge and consent is illegal
+> in many countries (including France) and may breach your employer's policies.
+> Announce the recording at the start of every call and stop if anyone objects.
+> You are solely responsible for how you use this tool and for complying with the laws
+> and rules that apply to you. The software is provided "as is", without warranty
+> (see [LICENSE](LICENSE)).
 
 ---
 
