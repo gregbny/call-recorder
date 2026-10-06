@@ -1,0 +1,8 @@
+.DS_Store
+.build/
+build/
+dist/
+.claude/
+.swiftpm/
+HANDOVER_call_recorder.md
+*.m4a
